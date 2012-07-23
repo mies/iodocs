@@ -60,6 +60,7 @@ if (process.env.REDISTOGO_URL) {
 }
 
 db.on("error", function(err) {
+    "use strict";
     if (config.debug) {
          console.log("Error " + err);
     }
@@ -70,7 +71,10 @@ db.on("error", function(err) {
 //
 var apisConfig;
 fs.readFile('public/data/apiconfig.json', 'utf-8', function(err, data) {
-    if (err) throw err;
+    "use strict";
+    if (err) {
+        throw err;
+    }
     apisConfig = JSON.parse(data);
     if (config.debug) {
          console.log(util.inspect(apisConfig));
@@ -87,6 +91,7 @@ if (process.env.REDISTOGO_URL) {
 }
 
 app.configure(function() {
+    "use strict";
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
     app.use(express.logger());
@@ -109,10 +114,12 @@ app.configure(function() {
 });
 
 app.configure('development', function() {
+    "use strict";
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
 app.configure('production', function() {
+    "use strict";
     app.use(express.errorHandler());
 });
 
@@ -120,6 +127,7 @@ app.configure('production', function() {
 // Middleware
 //
 function oauth(req, res, next) {
+    "use strict";
     console.log('OAuth process started');
     var apiName = req.body.apiName,
         apiConfig = apisConfig[apiName];
@@ -143,10 +151,10 @@ function oauth(req, res, next) {
             console.log('Session authed: ' + req.session[apiName]);
             console.log('apiKey: ' + apiKey);
             console.log('apiSecret: ' + apiSecret);
-        };
+        }
 
         // Check if the API even uses OAuth, then if the method requires oauth, then if the session is not authed
-        if (apiConfig.oauth.type == 'three-legged' && req.body.oauth == 'authrequired' && (!req.session[apiName] || !req.session[apiName].authed) ) {
+        if (apiConfig.oauth.type === 'three-legged' && req.body.oauth === 'authrequired' && (!req.session[apiName] || !req.session[apiName].authed) ) {
             if (config.debug) {
                 console.log('req.session: ' + util.inspect(req.session));
                 console.log('headers: ' + util.inspect(req.headers));
@@ -155,7 +163,7 @@ function oauth(req, res, next) {
                 // console.log(util.inspect(req));
                 console.log('sessionID: ' + util.inspect(req.sessionID));
                 // console.log(util.inspect(req.sessionStore));
-            };
+            }
 
             oa.getOAuthRequestToken(function(err, oauthToken, oauthTokenSecret, results) {
                 if (err) {
@@ -180,7 +188,7 @@ function oauth(req, res, next) {
                     res.send({ 'signin': apiConfig.oauth.signinURL + oauthToken });
                 }
             });
-        } else if (apiConfig.oauth.type == 'two-legged' && req.body.oauth == 'authrequired') {
+        } else if (apiConfig.oauth.type === 'two-legged' && req.body.oauth === 'authrequired') {
             // Two legged stuff... for now nothing.
             next();
         } else {
@@ -196,6 +204,7 @@ function oauth(req, res, next) {
 // OAuth Success!
 //
 function oauthSuccess(req, res, next) {
+    "use strict";
     var oauthRequestToken,
         oauthRequestTokenSecret,
         apiKey,
@@ -208,7 +217,7 @@ function oauthSuccess(req, res, next) {
         console.log('apiName: ' + apiName);
         console.log('key: ' + key);
         console.log(util.inspect(req.params));
-    };
+    }
 
     db.mget([
         key + ':requestToken',
@@ -219,7 +228,7 @@ function oauthSuccess(req, res, next) {
         if (err) {
             console.log(util.inspect(err));
         }
-        oauthRequestToken = result[0],
+        var oauthRequestToken = result[0],
         oauthRequestTokenSecret = result[1],
         apiKey = result[2],
         apiSecret = result[3];
@@ -228,7 +237,7 @@ function oauthSuccess(req, res, next) {
             console.log(util.inspect(">>"+oauthRequestToken));
             console.log(util.inspect(">>"+oauthRequestTokenSecret));
             console.log(util.inspect(">>"+req.query.oauth_verifier));
-        };
+        }
 
         var oa = new OAuth(apiConfig.oauth.requestURL,
                            apiConfig.oauth.accessURL,
@@ -240,7 +249,7 @@ function oauthSuccess(req, res, next) {
 
         if (config.debug) {
             console.log(util.inspect(oa));
-        };
+        }
 
         oa.getOAuthAccessToken(oauthRequestToken, oauthRequestTokenSecret, req.query.oauth_verifier, function(error, oauthAccessToken, oauthAccessTokenSecret, results) {
             if (error) {
@@ -248,7 +257,7 @@ function oauthSuccess(req, res, next) {
             } else {
                 if (config.debug) {
                     console.log('results: ' + util.inspect(results));
-                };
+                }
                 db.mset([key + ':accessToken', oauthAccessToken,
                     key + ':accessTokenSecret', oauthAccessTokenSecret
                 ], function(err, results2) {
@@ -256,7 +265,7 @@ function oauthSuccess(req, res, next) {
                     req.session[apiName].authed = true;
                     if (config.debug) {
                         console.log('session[apiName].authed: ' + util.inspect(req.session));
-                    };
+                    }
 
                     next();
                 });
@@ -270,9 +279,10 @@ function oauthSuccess(req, res, next) {
 // processRequest - handles API call
 //
 function processRequest(req, res, next) {
+    "use strict";
     if (config.debug) {
         console.log(util.inspect(req.body, null, 3));
-    };
+    }
 
     var reqQuery = req.body,
         params = reqQuery.params || {},
@@ -280,7 +290,7 @@ function processRequest(req, res, next) {
         httpMethod = reqQuery.httpMethod,
         apiKey = reqQuery.apiKey,
         apiSecret = reqQuery.apiSecret,
-        apiName = reqQuery.apiName
+        apiName = reqQuery.apiName,
         apiConfig = apisConfig[apiName],
         key = req.sessionID + ':' + apiName;
 
@@ -294,7 +304,7 @@ function processRequest(req, res, next) {
                 // If the param is actually a part of the URL, put it in the URL and remove the param
                 if (!!regx.test(methodURL)) {
                     methodURL = methodURL.replace(regx, params[param]);
-                    delete params[param]
+                    delete params[param];
                 }
             } else {
                 delete params[param]; // Delete blank params
@@ -321,10 +331,10 @@ function processRequest(req, res, next) {
         console.log('Using OAuth');
 
         // Three legged OAuth
-        if (apiConfig.oauth.type == 'three-legged' && (reqQuery.oauth == 'authrequired' || (req.session[apiName] && req.session[apiName].authed))) {
+        if (apiConfig.oauth.type === 'three-legged' && (reqQuery.oauth === 'authrequired' || (req.session[apiName] && req.session[apiName].authed))) {
             if (config.debug) {
                 console.log('Three Legged OAuth');
-            };
+            }
 
             db.mget([key + ':apiKey',
                      key + ':apiSecret',
@@ -333,8 +343,8 @@ function processRequest(req, res, next) {
                 ],
                 function(err, results) {
 
-                    var apiKey = (typeof reqQuery.apiKey == "undefined" || reqQuery.apiKey == "undefined")?results[0]:reqQuery.apiKey,
-                        apiSecret = (typeof reqQuery.apiSecret == "undefined" || reqQuery.apiSecret == "undefined")?results[1]:reqQuery.apiSecret,
+                    var apiKey = (typeof reqQuery.apiKey === "undefined" || reqQuery.apiKey === "undefined")?results[0]:reqQuery.apiKey,
+                        apiSecret = (typeof reqQuery.apiSecret === "undefined" || reqQuery.apiSecret === "undefined")?results[1]:reqQuery.apiSecret,
                         accessToken = results[2],
                         accessTokenSecret = results[3];
                     console.log(apiKey);
@@ -354,7 +364,7 @@ function processRequest(req, res, next) {
                         console.log('Access token: ' + accessToken);
                         console.log('Access token secret: ' + accessTokenSecret);
                         console.log('key: ' + key);
-                    };
+                    }
 
                     oa.getProtectedResource(privateReqURL, httpMethod, accessToken, accessTokenSecret,  function (error, data, response) {
                         req.call = privateReqURL;
@@ -363,13 +373,13 @@ function processRequest(req, res, next) {
                         if (error) {
                             console.log('Got error: ' + util.inspect(error));
 
-                            if (error.data == 'Server Error' || error.data == '') {
+                            if (error.data === 'Server Error' || error.data === '') {
                                 req.result = 'Server Error';
                             } else {
                                 req.result = error.data;
                             }
 
-                            res.statusCode = error.statusCode
+                            res.statusCode = error.statusCode;
 
                             next();
                         } else {
@@ -381,10 +391,10 @@ function processRequest(req, res, next) {
                     });
                 }
             );
-        } else if (apiConfig.oauth.type == 'two-legged' && reqQuery.oauth == 'authrequired') { // Two-legged
+        } else if (apiConfig.oauth.type === 'two-legged' && reqQuery.oauth === 'authrequired') { // Two-legged
             if (config.debug) {
                 console.log('Two Legged OAuth');
-            };
+            }
 
             var body,
                 oa = new OAuth(null,
@@ -398,7 +408,7 @@ function processRequest(req, res, next) {
             var resource = options.protocol + '://' + options.host + options.path,
                 cb = function(error, data, response) {
                     if (error) {
-                        if (error.data == 'Server Error' || error.data == '') {
+                        if (error.data === 'Server Error' || error.data === '') {
                             req.result = 'Server Error';
                         } else {
                             console.log(util.inspect(error));
@@ -466,9 +476,10 @@ function processRequest(req, res, next) {
     // Unsecured API Call helper
     function unsecuredCall() {
         console.log('Unsecured Call');
+        var apiConfig;
 
         // Add API Key to params, if any.
-        if (apiKey != '' && apiKey != 'undefined' && apiKey != undefined) {
+        if (apiKey !== '' && apiKey !== 'undefined' && apiKey !== undefined) {
             if (options.path.indexOf('?') !== -1) {
                 options.path += '&';
             }
@@ -480,13 +491,13 @@ function processRequest(req, res, next) {
 
         // Perform signature routine, if any.
         if (apiConfig.signature) {
-            if (apiConfig.signature.type == 'signed_md5') {
+            if (apiConfig.signature.type === 'signed_md5') {
                 // Add signature parameter
                 var timeStamp = Math.round(new Date().getTime()/1000);
                 var sig = crypto.createHash('md5').update('' + apiKey + apiSecret + timeStamp + '').digest(apiConfig.signature.digest);
                 options.path += '&' + apiConfig.signature.sigParam + '=' + sig;
             }
-            else if (apiConfig.signature.type == 'signed_sha256') { // sha256(key+secret+epoch)
+            else if (apiConfig.signature.type === 'signed_sha256') { // sha256(key+secret+epoch)
                 // Add signature parameter
                 var timeStamp = Math.round(new Date().getTime()/1000);
                 var sig = crypto.createHash('sha256').update('' + apiKey + apiSecret + timeStamp + '').digest(apiConfig.signature.digest);
@@ -498,14 +509,14 @@ function processRequest(req, res, next) {
         if (reqQuery.headerNames && reqQuery.headerNames.length > 0) {
             if (config.debug) {
                 console.log('Setting headers');
-            };
+            }
             var headers = {};
 
             for (var x = 0, len = reqQuery.headerNames.length; x < len; x++) {
                 if (config.debug) {
                   console.log('Setting header: ' + reqQuery.headerNames[x] + ':' + reqQuery.headerValues[x]);
-                };
-                if (reqQuery.headerNames[x] != '') {
+                }
+                if (reqQuery.headerNames[x] !== '') {
                     headers[reqQuery.headerNames[x]] = reqQuery.headerValues[x];
                 }
             }
@@ -519,7 +530,7 @@ function processRequest(req, res, next) {
 
         if (config.debug) {
             console.log(util.inspect(options));
-        };
+        }
 
         // API Call. response is the response from the API, res is the response we will send back to the user.
         var apiCall = http.request(options, function(response) {
@@ -527,7 +538,7 @@ function processRequest(req, res, next) {
             if (config.debug) {
                 console.log('HEADERS: ' + JSON.stringify(response.headers));
                 console.log('STATUS CODE: ' + response.statusCode);
-            };
+            }
 
             res.statusCode = response.statusCode;
 
@@ -535,7 +546,7 @@ function processRequest(req, res, next) {
 
             response.on('data', function(data) {
                 body += data;
-            })
+            });
 
             response.on('end', function() {
                 delete options.agent;
@@ -564,13 +575,13 @@ function processRequest(req, res, next) {
                 console.log(util.inspect(body));
 
                 next();
-            })
+            });
         }).on('error', function(e) {
             if (config.debug) {
                 console.log('HEADERS: ' + JSON.stringify(res.headers));
                 console.log("Got error: " + e.message);
                 console.log("Error: " + util.inspect(e));
-            };
+            }
         });
 
         apiCall.end();
@@ -581,16 +592,17 @@ function processRequest(req, res, next) {
 // Passes variables to the view
 app.dynamicHelpers({
     session: function(req, res) {
+        "use strict";
     // If api wasn't passed in as a parameter, check the path to see if it's there
  	    if (!req.params.api) {
- 	    	pathName = req.url.replace('/','');
+ 	    	var pathName = req.url.replace('/','');
  	    	// Is it a valid API - if there's a config file we can assume so
  	    	fs.stat('public/data/' + pathName + '.json', function (error, stats) {
    				if (stats) {
    					req.params.api = pathName;
    				}
  			});
- 	    }       
+ 	    }
  	    // If the cookie says we're authed for this particular API, set the session to authed as well
         if (req.params.api && req.session[req.params.api] && req.session[req.params.api]['authed']) {
          	req.session['authed'] = true;
@@ -599,6 +611,7 @@ app.dynamicHelpers({
         return req.session;
     },
     apiInfo: function(req, res) {
+        "use strict";
         if (req.params.api) {
             return apisConfig[req.params.api];
         } else {
@@ -606,22 +619,25 @@ app.dynamicHelpers({
         }
     },
     apiName: function(req, res) {
+        "use strict";
         if (req.params.api) {
             return req.params.api;
         }
     },
     apiDefinition: function(req, res) {
+        "use strict";
         if (req.params.api) {
             var data = fs.readFileSync('public/data/' + req.params.api + '.json');
             return JSON.parse(data);
         }
     }
-})
+});
 
 //
 // Routes
 //
 app.get('/', function(req, res) {
+    "use strict";
     res.render('listAPIs', {
         title: config.title
     });
@@ -629,6 +645,7 @@ app.get('/', function(req, res) {
 
 // Process the API request
 app.post('/processReq', oauth, processRequest, function(req, res) {
+    "use strict";
     var result = {
         headers: req.resultHeaders,
         response: req.result,
@@ -643,18 +660,21 @@ app.all('/auth', oauth);
 
 // OAuth callback page, closes the window immediately after storing access token/secret
 app.get('/authSuccess/:api', oauthSuccess, function(req, res) {
+    "use strict";
     res.render('authSuccess', {
         title: 'OAuth Successful'
     });
 });
 
 app.post('/upload', function(req, res) {
-  console.log(req.body.user);
-  res.redirect('back');
+    "use strict";
+    console.log(req.body.user);
+    res.redirect('back');
 });
 
 // API shortname, all lowercase
 app.get('/:api([^\.]+)', function(req, res) {
+    "use strict";
     res.render('api');
 });
 
