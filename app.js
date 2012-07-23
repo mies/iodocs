@@ -24,6 +24,13 @@
 //
 // Module dependencies
 //
+
+var rtg = require("url").parse(process.env.REDISTOGO_URL);
+var redis = require("redis").createClient(rtg.port, rtg.hostname);
+redis.auth(rtg.auth.split(":")[1]);
+
+
+
 var express     = require('express'),
     util        = require('util'),
     fs          = require('fs'),
@@ -32,7 +39,7 @@ var express     = require('express'),
     url         = require('url'),
     http        = require('http'),
     crypto      = require('crypto'),
-    redis       = require('redis'),
+//    redis       = require('redis'),
     RedisStore  = require('connect-redis')(express);
 
 // Configuration
