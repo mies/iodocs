@@ -25,10 +25,6 @@
 // Module dependencies
 //
 
-var rtg = require("url").parse(process.env.REDISTOGO_URL);
-var redis = require("redis").createClient(rtg.port, rtg.hostname);
-redis.auth(rtg.auth.split(":")[1]);
-
 
 
 var express     = require('express'),
@@ -39,7 +35,7 @@ var express     = require('express'),
     url         = require('url'),
     http        = require('http'),
     crypto      = require('crypto'),
-//    redis       = require('redis'),
+    redis       = require('redis'),
     RedisStore  = require('connect-redis')(express);
 
 // Configuration
@@ -51,6 +47,7 @@ try {
     console.error("File config.json not found or is invalid.  Try: `cp config.json.sample config.json`");
     process.exit(1);
 }*/
+var config;
 
 //
 // Redis connection
