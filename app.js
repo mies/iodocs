@@ -43,13 +43,14 @@ var express     = require('express'),
     RedisStore  = require('connect-redis')(express);
 
 // Configuration
+/*
 try {
     var configJSON = fs.readFileSync(__dirname + "/config.json");
     var config = JSON.parse(configJSON.toString());
 } catch(e) {
     console.error("File config.json not found or is invalid.  Try: `cp config.json.sample config.json`");
     process.exit(1);
-}
+}*/
 
 //
 // Redis connection
